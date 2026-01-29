@@ -64,6 +64,7 @@ A lexicon-based sentiment analysis approach was applied to classify reviews as:
  - Negative
    
 Sentiment scores were calculated based on word polarity values, and each review was assigned an overall sentiment label.
+
 The results showed:
  - A clear dominance of positive sentiment
  - Negative sentiment often linked to side effects, fishy aftertaste, or capsule size
@@ -72,6 +73,7 @@ The results showed:
 ## Topic Modeling
 
 Topic modeling was conducted to identify main themes present in the reviews.
+
 The analysis revealed recurring topics such as:
  - Product effectiveness and health benefits
  - Taste and smell
