@@ -4,6 +4,7 @@ Sentiment analysis of customer reviews for omega-3 dietary supplements using NLP
 ## Project Overview
 
 This project presents a comprehensive sentiment analysis of online consumer reviews of selected omega-3 dietary supplements. The aim was to explore how users express opinions about health-related products and to identify key factors influencing overall sentiment.
+
 The analysis combines exploratory data analysis (EDA), lexicon-based sentiment analysis, and topic modeling, providing both quantitative and qualitative insights into customer feedback. The project was conducted as part of an MSc Data Science thesis and adapted here for portfolio presentation.
 
 ## Problem Context & Motivation
@@ -19,6 +20,7 @@ The main objectives of the project were:
  - To determine which product features are most frequently praised or criticized
  - To explore key themes discussed by users using topic modeling
  - To examine the relationship between sentiment polarity and star ratings (1–5)
+   
 These objectives correspond directly to the thesis research questions.
 
 ## Dataset
@@ -27,6 +29,7 @@ The dataset consists of user-generated reviews collected from online retail plat
 Each record includes:
  - Review text
  - Numerical rating (1–5 stars)
+   
 The data represents real consumer opinions related to effectiveness, side effects, taste, packaging, and perceived health benefits.
 
 ## Data Preprocessing
@@ -38,6 +41,7 @@ Before analysis, the textual data underwent standard NLP preprocessing steps:
  - Tokenization
  - Stop-word removal
  - Lemmatization
+   
 These steps ensured cleaner input for sentiment analysis and topic modeling.
 
 
@@ -49,6 +53,7 @@ Key analyses included:
  - Review length analysis
  - Frequency of most common words
  - Initial inspection of sentiment tendencies across ratings
+   
 The EDA revealed a strong imbalance toward positive reviews, which is common in health-related consumer products.
 
 ## Sentiment Analysis
@@ -57,6 +62,7 @@ A lexicon-based sentiment analysis approach was applied to classify reviews as:
  - Positive
  - Neutral
  - Negative
+   
 Sentiment scores were calculated based on word polarity values, and each review was assigned an overall sentiment label.
 The results showed:
  - A clear dominance of positive sentiment
@@ -72,6 +78,7 @@ The analysis revealed recurring topics such as:
  - Capsule size and ease of swallowing
  - Price and value for money
  - Delivery and packaging quality
+   
 These topics aligned strongly with sentiment polarity, helping explain why certain reviews were positive or negative.
 
 ## Results 
@@ -81,6 +88,7 @@ Key findings of the project include:
  - Health benefits and perceived effectiveness are the most influential factors driving positive reviews
  - Negative reviews are primarily associated with physical discomfort or sensory issues
  - Topic modeling provided valuable interpretability by linking sentiment scores with concrete product features
+   
 Overall, the study confirms that sentiment analysis can effectively capture consumer attitudes toward dietary supplements, though domain-specific language plays a crucial role in interpretation.
 
 ## Limitations
