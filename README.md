@@ -36,8 +36,8 @@ The data represents real consumer opinions related to effectiveness, side effect
 
 Before analysis, the textual data underwent standard NLP preprocessing steps:
  - Removal of duplicates
- - Lowercasing text
  - Removal of punctuation, numbers, and special characters
+ - Lowercasing text
  - Tokenization
  - Stop-word removal
  - Lemmatization
@@ -67,8 +67,9 @@ Sentiment scores were calculated based on word polarity values, and each review 
 
 The results showed:
  - A clear dominance of positive sentiment
+ - Positive sentiment mainly relates to effectiveness and service
  - Negative sentiment often linked to side effects, fishy aftertaste, or capsule size
- - Neutral reviews typically describing factual usage without strong emotional tone
+ - Negative opinions tend to appear in longer reviews
 
 ## Topic Modeling
 
@@ -78,7 +79,6 @@ The analysis revealed recurring topics such as:
  - Product effectiveness and health benefits
  - Taste and smell
  - Capsule size and ease of swallowing
- - Price and value for money
  - Delivery and packaging quality
    
 These topics aligned strongly with sentiment polarity, helping explain why certain reviews were positive or negative.
