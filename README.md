@@ -95,10 +95,26 @@ Overall, the study confirms that sentiment analysis can effectively capture cons
 
 ## Limitations
 
+Despite providing meaningful insights, this study has several limitations that should be acknowledged.
 
+First, sentiment analysis was performed using a lexicon-based approach, which may not fully capture contextual meaning, sarcasm, or nuanced emotional expressions present in user-generated reviews. As a result, some sentiment scores may not perfectly reflect the true intent of the reviewers.
+
+Second, the analysis was conducted on a limited set of omega-3 supplements. While this allowed for detailed exploration, the findings may not be fully generalisable to all dietary supplements or broader consumer markets.
+
+Additionally, numerical ratings were treated as direct indicators of customer satisfaction. However, ratings do not always align with the emotional tone of written reviews, as users may express mixed or contradictory sentiments within the same review.
+
+Finally, preprocessing steps such as stop-word removal and token filtering, although necessary, may have removed potentially meaningful contextual information, influencing topic modelling and sentiment interpretation.
 
 ## Conclusions & Future Work
 
+The aim of this study was to determine overall consumer sentiment by analysing numerical ratings and textual content in online reviews of omega-3 supplements.
+
+The findings show that sentiment analysis is a useful tool for identifying key themes and emotional tone in consumer reviews. The analysis revealed a moderate positive relationship between numerical ratings and sentiment scores, indicating that higher ratings are generally associated with more positive sentiment expressed in review content.
+However, the results also demonstrate that numerical ratings do not always fully reflect the aspects expressed in written reviews. Certain factors influencing consumer satisfaction may be present in the text but are not captured by rating values alone.
+
+Overall, this study highlights the importance of analysing both ratings and textual data to gain a more complete understanding of consumer opinions, particularly in the context of health-related products.
+
+Future research could extend this analysis by examining a larger set of reviews to further explore the relationship between numerical ratings and textual sentiment. Such work may help to better understand cases where written feedback provides additional insight beyond rating values alone.
 
 
 ## Tools & Technologies
