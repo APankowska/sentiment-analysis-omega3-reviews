@@ -49,10 +49,10 @@ These steps ensured cleaner input for sentiment analysis and topic modeling.
 
 EDA was performed to understand the structure and characteristics of the dataset.
 Key analyses included:
- - Distribution of star ratings
- - Review length analysis
- - Frequency of most common words
- - Initial inspection of sentiment tendencies across ratings
+ - Distribution of star ratings ['Distribution'](https://github.com/APankowska/sentiment-analysis-omega3-reviews/blob/main/Rating%20distribution.pdf)
+ - Review length analysis  ['Review length']
+ - Frequency of most common words ['Word cloud']
+ - Initial inspection of sentiment tendencies across ratings ['Sentiment vs. Rating']
    
 The EDA revealed a strong imbalance toward positive reviews, which is common in health-related consumer products.
 
