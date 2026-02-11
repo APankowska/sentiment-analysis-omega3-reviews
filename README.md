@@ -80,7 +80,7 @@ The analysis revealed recurring topics such as:
  - Taste and smell
  - Capsule size and ease of swallowing
  - Delivery and packaging quality
-   
+ - ['Top words for each topic'](https://github.com/APankowska/sentiment-analysis-omega3-reviews/blob/main/Top%2010%20Words%20for%20Each%20Topic.pdf )
 These topics aligned strongly with sentiment polarity, helping explain why certain reviews were positive or negative.
 
 ## Results 
