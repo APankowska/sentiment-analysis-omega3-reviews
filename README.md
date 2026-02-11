@@ -52,7 +52,7 @@ Key analyses included:
  - Distribution of star ratings ['Distribution'](https://github.com/APankowska/sentiment-analysis-omega3-reviews/blob/main/Rating%20distribution.pdf)
  - Review length analysis  ['Review length'](https://github.com/APankowska/sentiment-analysis-omega3-reviews/blob/main/length%20of%20the%20rewiews.pdf)
  - Frequency of most common words ['Most common words'](https://github.com/APankowska/sentiment-analysis-omega3-reviews/blob/main/Frequency%20of%20most%20common%20words.pdf)
- - Initial inspection of sentiment tendencies across ratings ['Sentiment vs. Rating']
+ - Initial inspection of sentiment tendencies across ratings ['Sentiment vs. Rating'](https://github.com/APankowska/sentiment-analysis-omega3-reviews/blob/main/Relationship%20Between%20Numerical%20Rating%20and%20Sentiment%20Score%20for%20Each%20Review.pdf)
    
 The EDA revealed a strong imbalance toward positive reviews, which is common in health-related consumer products.
 
