@@ -25,7 +25,7 @@ These objectives correspond directly to the thesis research questions.
 
 ## Dataset
 
-The dataset consists of user-generated reviews collected from online retail platforms. 
+The ['dataset'](https://github.com/APankowska/sentiment-analysis-omega3-reviews/blob/main/Supplement%20Data%20Omega%203.csv) consists of user-generated reviews collected from online retail platforms. 
 Each record includes:
  - Review text
  - Numerical rating (1–5 stars)
