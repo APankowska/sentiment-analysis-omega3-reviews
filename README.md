@@ -69,7 +69,7 @@ The results showed:
  - A clear dominance of positive sentiment ['Positive and negative sentiment distribution'](https://github.com/APankowska/sentiment-analysis-omega3-reviews/blob/main/Token%20Sentiment%20Distribution.pdf)
  - Positive sentiment mainly relates to effectiveness and service ['10 most frequent positive and negative words'](https://github.com/APankowska/sentiment-analysis-omega3-reviews/blob/main/Top%2010%20Most%20Frequent%20Positive%20and%20Negative%20Words.pdf)
  - Negative sentiment often linked to side effects, fishy aftertaste, or capsule size
- - Negative opinions tend to appear in longer reviews ['Sentiment vs. length of the review']
+ - Negative opinions tend to appear in longer reviews ['Sentiment vs. length of the review'](https://github.com/APankowska/sentiment-analysis-omega3-reviews/blob/main/Relationship%20Between%20Review%20Length%20and%20Sentiment%20Score.pdf)
 
 ## Topic Modeling
 
