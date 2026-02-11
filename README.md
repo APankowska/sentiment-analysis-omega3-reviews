@@ -121,7 +121,7 @@ Future research could extend this analysis by examining a larger set of reviews 
  - R (text mining, sentiment analysis, topic modeling)
  - NLP libraries for preprocessing and analysis
  - Statistical methods for exploratory analysis
-
+ - R ['code'](https://github.com/APankowska/sentiment-analysis-omega3-reviews/blob/main/Projekt%20magisterski%20Omega%203.Rmd)
 
 
 
