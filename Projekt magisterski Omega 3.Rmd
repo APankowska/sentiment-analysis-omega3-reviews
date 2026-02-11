@@ -1,0 +1,880 @@
+---
+title: "Sentiment Analysis Omega 3"
+author: "Anna Pankowska"
+date: "`r Sys.Date()`"
+output: html_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Pakiety
+```{r packages i dane}
+libraries <- c("tm", "tidytext", "ggplot2", "wordcloud", "syuzhet", "dplyr", "tibble", "textstem", "textdata", "tidyr", "Matrix", "topicmodels", "stringr", "reshape2", "LDAvis", "jsonlite")
+for (lib in libraries) { 
+  library(lib, character.only=TRUE) #Library takes function names without quotes, character only must be used in a loop of this kind.
+}
+```
+#THE NAMES OF SOME VARIABLES ARE WRITTEN IN POLISH, WHICH MADE THE ANALYSIS EASIER FOR ME
+#TO FACILITATE UNDERSTANDING OF THE CODE, COMMENTS HAVE BEEN ADDED IN ENGLISH
+
+
+#Loading data
+```{r Load Dataset}
+filepath<-"C:\\Users\\Ania\\OneDrive - University of South Wales\\Documents\\Supplement Data Omega 3.csv"
+#Define file path. Windows requires \ to be replaced by \\.Works on Mac (apparently).
+
+df<-as_tibble(read.csv(filepath, stringsAsFactors=FALSE))
+#Since we have text data we do not want this read as a factor.
+
+#Inspect summary and first few rows of data.
+print(summary(df))
+print(head(df))
+df %>%
+  select(REVIEW)
+```
+#EDA
+```{r EDA}
+#Number of reviews for each product
+df %>%
+  group_by(BRAND) %>%
+  summarise(number_of_reviews=n()) %>%
+  arrange(desc(number_of_reviews))
+
+#Tokenisation
+df_tok_reviews<-df %>%
+  unnest_tokens(output=word,input="REVIEW",token="words",to_lower = TRUE)
+
+print(df_tok_reviews)
+print(summary(df_tok_reviews))
+word_counts_df1<-df_tok_reviews %>%
+  count(word,sort=TRUE)
+
+#Common words in reviews
+ggplot(word_counts_df1[1:10,],aes(x=reorder(word,n),y=n))+
+  geom_col(fill="blue")+
+  labs(x="Words",y="Frequency")+
+  coord_flip()+
+  theme_minimal()
+
+
+#Average rating for each supplement
+average_rating_eda <-df %>%
+  group_by(BRAND) %>%
+  summarise(mean_rating_eda=mean(RATING,na.rm=TRUE)) %>%
+  arrange(desc(mean_rating_eda))
+average_rating_eda
+
+wordcloud(words=word_counts_df1$word,freq =word_counts_df1$n,min.freq = 50,random.order = FALSE,random.color = FALSE,color=sample(colors(),size=10))
+
+
+
+#Number of duplicated reciews for each product
+duplicates_check<-df %>%
+  group_by(BRAND) %>%
+  summarise(duplicates=sum(duplicated(REVIEW)))%>%
+  arrange(desc(duplicates))
+duplicates_check
+```
+
+
+
+
+
+#Choosing important information
+```{r column selection}
+df_selected<- df[,c(1,2,9,10,13,14)]      #Column selection
+
+df_selected %>%
+  group_by(BRAND) %>%
+  summarise(liczba_recenzji=n()) %>%
+  arrange(desc(liczba_recenzji))
+  
+
+print(summary(df_selected))
+
+head(df_selected)
+```
+
+
+
+#Cleaning
+#Removing duplicates within a product
+```{r Removing duplicates}
+
+dane_bez_duplitatow <- df_selected %>%      #data_withouot_duplicaates
+  group_by(BRAND) %>%
+  distinct(REVIEW, .keep_all = TRUE) %>%
+  ungroup()
+
+
+print(summary(dane_bez_duplitatow))
+
+dane_bez_duplitatow %>%
+  group_by(BRAND) %>%
+  summarise(liczba_recenzji=n()) %>%
+  arrange(desc(liczba_recenzji))
+  
+
+
+
+```
+
+
+# 2 Converting to lowercase
+```{r lowercase}
+
+dane_bez_duplitatow$REVIEW <- tolower(dane_bez_duplitatow$REVIEW)
+dane_bez_duplitatow %>%
+  select(REVIEW)
+```
+
+# 3 Removing special characters, numbers, emojis, links and HTML tags
+
+```{r removing special characters}
+
+dane_bez_duplitatow$REVIEW <- dane_bez_duplitatow$REVIEW %>%
+  str_replace_all("<[^>]+>", " ") %>%                                         #html
+  str_replace_all("http[s]?://\\S+|www\\.\\S+", " ") %>%                      #links
+  str_replace_all("[^\\p{L}\\s]", " ") %>%                                    #special chaaracters and emojis
+  str_replace_all("\\d+", " ") %>%                                            #numbers
+  str_squish()                                                                #spaces
+```
+
+
+# 4 Rmoving empty reviews 
+```{r empty reviews}
+dane_gotowe_do_tokenizacji<-na.omit(dane_bez_duplitatow)      #data_prepared_for_tokenization
+ 
+dane_gotowe_do_tokenizacji %>%
+  select(REVIEW)
+print(summary(dane_gotowe_do_tokenizacji))
+
+
+
+
+
+
+
+#Checking if all supplements have at least 100 reviews
+dane_gotowe_do_tokenizacji %>%
+  count(BRAND,name="liczba_reviews") %>%                                           #liczba_reviews = number_o_reviews
+  mutate(perc=round(100 * liczba_reviews /sum(liczba_reviews), 1)) %>%
+  arrange(desc(liczba_reviews))
+
+#Removing the supplemets 'Seven Seas' (<100 reviews)
+dane_gotowe_do_tokenizacji<-dane_gotowe_do_tokenizacji %>%
+  filter(BRAND !="Seven seas")
+  
+dane_gotowe_do_tokenizacji %>%
+  count(BRAND,name="liczba_reviews") %>%
+  mutate(perc=round(100 * liczba_reviews /sum(liczba_reviews), 1)) %>%
+  arrange(desc(liczba_reviews))
+
+#Total number of reviews
+dane_gotowe_do_tokenizacji %>%
+  summarise(liczba_reviews=n())
+```
+
+
+# 5 Tokenization: Splitting into individual words (tokens)
+```{r tokenization}
+
+tokenized_reviews<-dane_gotowe_do_tokenizacji %>%
+  unnest_tokens(output=word,input="REVIEW",token="words",to_lower = TRUE)
+
+word_counts<-tokenized_reviews %>%
+  count(word,sort=TRUE)
+
+ggplot(word_counts[1:10,],aes(x=reorder(word,n),y=n))+
+  geom_col(fill="blue")+
+  labs(x="Words",y="Frequency")+
+  coord_flip()+
+  theme_minimal()
+
+
+```
+
+# 6 Stop words
+```{r removing stop words}
+clean_tokenised_reviews <-tokenized_reviews %>%
+  anti_join(stop_words,by="word")
+
+data("stop_words")
+unique(stop_words$lexicon)
+
+
+
+
+
+#Number reviews after cleaning for each product
+clean_tokenised_reviews %>% 
+  group_by(BRAND) %>%
+  summarise(reviews_after_cleaning=n_distinct(ID)) %>%
+  arrange(desc(reviews_after_cleaning))
+
+#Total number reviews after cleaning
+total_reviews_after_cleaning<-
+clean_tokenised_reviews %>%
+  summarise(total_reviews=n_distinct(ID))
+
+total_reviews_after_cleaning
+```
+
+#Average total rating 
+```{r rating}
+clean_tokenised_reviews %>%
+  count(BRAND,name="liczba_tokenow") %>%                                    #liczba_tokenow = number_of_tokens
+  mutate(perc=round(100 * liczba_tokenow /sum(liczba_tokenow), 1)) %>%
+  arrange(desc(liczba_tokenow))
+
+#average total rating
+average_rating <-clean_tokenised_reviews %>%
+  group_by(BRAND) %>%
+  summarise(mean_rating=mean(RATING,na.rm=TRUE)) %>%
+  arrange(desc(mean_rating))
+
+
+print(summary(average_rating))
+print(average_rating)
+```
+
+# 7 Lemmatization (textstem package) 
+```{r resorting words to their root forms}
+clean_tokenised_reviews <-tokenized_reviews %>%
+  anti_join(stop_words,by="word")
+
+clean_tokenised_reviews$word<-gsub("[^a-zA-Z]", " ",clean_tokenised_reviews$word) %>%
+  na_if(" ") %>%
+  lemmatize_words()
+
+clean_tokenised_reviews<-na.omit(clean_tokenised_reviews)
+
+print(summary(clean_tokenised_reviews))
+print(clean_tokenised_reviews)
+clean_tokenised_reviews %>%
+  distinct(BRAND,ID) %>%
+  count(BRAND,name="review_count")
+
+print(clean_tokenised_reviews)
+```
+
+# 8 Visualisation
+```{r wyswietlenie}
+word_counts<-clean_tokenised_reviews %>%
+  count(word,sort=TRUE)
+
+top_words<-top_n(word_counts,10,n)$word
+
+filtered_word_counts<-filter(word_counts,word%in%top_words)
+filtered_word_counts$word<-factor(filtered_word_counts$word,levels = top_words[length(top_words):1])
+
+ggplot(filtered_word_counts,aes(x=reorder(word,n),y=n))+
+  geom_col(fill="blue")+
+  labs(x="Words",y="Frequency")+
+  coord_flip()+
+  theme_minimal()
+
+set.seed(2)
+wordcloud(words=word_counts$word,freq =word_counts$n,min.freq = 50,random.order = FALSE,random.color = FALSE,color=sample(colors(),size=10))
+```
+
+
+# 9 Grouping the most frequent tokens by brand
+```{r top tokens per brand}
+grouped_count<- group_by(clean_tokenised_reviews,BRAND) %>%
+  count(word) %>%
+  filter(word %in% top_words)
+
+grouped_count$word <-factor(grouped_count$word,levels=top_words[length(top_words):1])             #orders the top words according to overall frequency
+
+ggplot(data=grouped_count,aes(x=word,y=n,fill=BRAND))+
+  geom_col(position = "dodge")+
+  labs(x="Words",y="Fill",fill="BRAND")+
+  coord_flip()+
+  theme_minimal()
+
+```
+
+
+
+
+
+
+
+#SENTIMENT ANALYSIS
+# 2 lexicons: afinn and bing
+```{r loading lexicons}
+afinn<-get_sentiments("afinn")
+bing<-get_sentiments("bing")
+
+```
+
+
+# Sentimenet Afinn for each review
+```{r Afinn for each review}
+#clean_tokenised_reviews
+#Afinn
+clean_tokenised_reviews_with_sent_afinn<-clean_tokenised_reviews %>%
+  inner_join(afinn, by="word")
+# afinn for each review  
+afinn_sent_review<-clean_tokenised_reviews_with_sent_afinn%>%
+  group_by(ID) %>%
+  summarise(mean_afinn_sentiment=mean(value, na.rm=TRUE))%>%
+  ungroup()
+  
+data_with_sent_afinn_review<-clean_tokenised_reviews_with_sent_afinn%>%
+  select(ID, BRAND, EPA..DHA, PRICE.in.., RATING) %>%
+  distinct(ID, .keep_all = TRUE) %>%
+  arrange(ID)
+data_with_sent_afinn_review
+
+
+afinn_sent_review<-afinn_sent_review%>%
+  right_join(data_with_sent_afinn_review, by="ID")
+
+#normalization
+afinn_sent_review<-afinn_sent_review%>%
+  select(ID, BRAND, EPA..DHA, PRICE.in.., RATING,mean_afinn_sentiment) %>%
+  mutate(normalised_sentiment_score=(mean_afinn_sentiment+5)/10)
+
+
+afinn_sent_review
+
+#afin: distribution after normalization
+ggplot(afinn_sent_review,aes(x=normalised_sentiment_score))+
+  geom_histogram(binwidth = 0.1)
+```
+
+
+#Dominant sentiment based on all reviews
+```{r Overall sentiment }
+#average overall sentiment
+overal_sent<-mean(afinn_sent_review$normalised_sentiment_score, na.rm=TRUE)
+print(overal_sent)
+
+#median
+median_token_sent<-median(afinn_sent_review$normalised_sentiment_score, na.rm=TRUE)
+print(median_token_sent)
+
+
+
+#Afinn sentiment for each supplement
+brand_sentiment_normal<-afinn_sent_review%>%
+  group_by(BRAND)%>%
+  summarise(average_brand_normalised_sentiment=mean(normalised_sentiment_score, na.rm=TRUE))%>%
+  arrange(desc(average_brand_normalised_sentiment))
+print(brand_sentiment_normal)
+
+ggplot(brand_sentiment_normal,aes(x=reorder(BRAND,average_brand_normalised_sentiment),y=average_brand_normalised_sentiment,fill=BRAND))+
+  geom_bar(stat = "identity")+
+  coord_flip()+
+  labs(title="Average Sentiment Score for Each Supplement",x="BRAND",y="Average sentiment Score")
+
+afinn_sent_review<-afinn_sent_review%>%
+  right_join(brand_sentiment_normal, by="BRAND")
+afinn_sent_review
+
+```
+
+
+# RQ1
+```{r RQ1}
+#data for RQ1 
+do_korelacji_pyt1<-afinn_sent_review %>%                                          #do_korelacji_pyt1 = for_correlation_of_RQ1
+  group_by(BRAND,PRICE.in..,EPA..DHA,average_brand_normalised_sentiment)%>%
+  summarise(average_rating=mean(RATING,na.rm=TRUE))
+print(do_korelacji_pyt1)
+
+
+#Price
+#correlation 
+spearman_price<-cor.test(do_korelacji_pyt1$average_brand_normalised_sentiment, do_korelacji_pyt1$PRICE.in.., method="spearman")
+spearman_price
+#visualization
+ggplot(do_korelacji_pyt1,aes(x=PRICE.in..,
+                          y=average_brand_normalised_sentiment))+
+  geom_point(alpha=0.3)+
+  geom_smooth(method = "",se=FALSE,color="blue")+
+  labs(title="Price vs. Sentiment Score",
+       x="Price (£)",
+       y="Sentiment Score")+
+  theme_minimal()
+
+
+
+#amount of acids in the product
+#correlation
+spearman_ilosc_kwasow<-cor.test(do_korelacji_pyt1$average_brand_normalised_sentiment, do_korelacji_pyt1$EPA..DHA, method="spearman")
+spearman_ilosc_kwasow
+#visualization
+ggplot(do_korelacji_pyt1,aes(x=EPA..DHA,
+                          y=average_brand_normalised_sentiment))+
+  geom_point(alpha=0.3)+
+  geom_smooth(method = "",se=FALSE,color="blue")+
+  labs(title="Polyunsaturated Fatty Acids per Sering (mg) vs. Sentiment Score",
+       x="EPA+DHA (mg)",
+       y="Sentiment Score")+
+  theme_minimal()
+
+
+
+
+#review length
+policzenie_dlugosci_recenzji<-clean_tokenised_reviews %>%            #policzenie_dlugosci_recenzji = counting_review_length
+  group_by(ID) %>%
+  summarise(word_count=n(), .groups = "drop")
+policzenie_dlugosci_recenzji
+#distribution of reiew length
+ggplot(policzenie_dlugosci_recenzji,aes(x=word_count))+
+  geom_histogram(binwidth = 5,fill="steelblue",color="black")+
+  labs(title = "Distribution of the lengths of reviews", x="Review length",y="Number of reviews")
+
+
+afinn_sent_review<-afinn_sent_review%>%
+  left_join(policzenie_dlugosci_recenzji, by="ID")
+afinn_sent_review
+#correlation  
+spearman_dlugosc_recenzji<-cor.test(afinn_sent_review$normalised_sentiment_score, afinn_sent_review$word_count, method="spearman")
+spearman_dlugosc_recenzji
+#visualization
+ggplot(afinn_sent_review,aes(x=word_count,
+                          y=normalised_sentiment_score))+
+  geom_point(alpha=0.3)+
+  geom_smooth(method = "",se=FALSE,color="blue")+
+  labs(title="Review length vs. Sentiment Score",
+       x="Review length",
+       y="Sentiment Score")+
+  theme_minimal()
+
+```
+
+
+#Bing 
+```{r wizualizacja}
+
+#Bing
+#bing_sent<-clean_tokenised_reviews %>%
+  #inner_join(bing, by="word") %>%
+# bing dla kazdej recenzji  
+#bing_sent_score <-bing_sent %>%
+  #mutate(value=ifelse(sentiment=="positive",1,-1)) %>%
+  #group_by(ID) %>%
+#summarize(bing_sentiment=sum(value))
+
+
+
+#bing
+
+#ggplot(bing_sent,aes(x=bing_sentiment))+
+#  geom_histogram(binwidth = 1)
+
+
+
+
+```
+
+
+# RQ 2
+# most praised vs. most critized
+```{r bing}
+
+tokens_sent<-clean_tokenised_reviews %>%
+  inner_join(get_sentiments("bing"),by=c("word"="word"))
+word_counts_bing_sent<-tokens_sent %>%
+  count(word,sentiment,sort=TRUE)
+
+procenty_pozyt_negat<-tokens_sent%>%                         #procety_pozyt_negat = percentages_positive_negative
+  count(sentiment) %>%
+  mutate(procent=n/sum(n)*100)
+procenty_pozyt_negat
+
+ggplot(tokens_sent,aes(x=sentiment,fill=sentiment))+
+  geom_bar()+
+  scale_fill_manual(values=c("positive"="green","negative"="red"))+
+  geom_text(stat="count", aes(label=..count..),vjust=-0.3)+
+  labs(title="Distribution of tokens by sentiment",
+       x="Sentiment",
+       y="Number of tokens")+
+  theme_minimal()
+
+
+
+
+
+
+
+# top 10 positive and top 10 negative
+top_positive<-word_counts_bing_sent %>%
+  filter(sentiment=="positive") %>%
+  top_n(10,n)
+
+top_negative<-word_counts_bing_sent %>%
+  filter(sentiment=="negative") %>%
+  top_n(10,n)
+
+print(top_positive)
+print(top_negative)
+
+top_words<-bind_rows(top_positive %>%
+                        mutate(sentiment="Positive"),
+                      top_negative %>%
+                        mutate(sentiment="Negative")
+                      )
+
+ggplot(top_words,aes(x=reorder(word,n),y=n,fill=sentiment))+
+  geom_col(show.legend = FALSE)+
+  facet_wrap(~sentiment,scales="free")+
+  coord_flip()+
+  labs(title = "Top 10 positive and negative words by frequency", x="Words",y="Frequency")
+
+
+
+
+
+
+
+# 10 top positive and 10 top negative words for each product
+bing<-get_sentiments("bing")
+clean_tokenised_reviews_bing_all<-clean_tokenised_reviews %>%
+  inner_join(bing,by="word") %>%
+  count(BRAND,sentiment,word,sort=TRUE) %>%
+  group_by(BRAND,sentiment) %>%
+  slice_max(order_by = n,n=10,with_ties = FALSE) %>%
+  ungroup()
+
+clean_tokenised_reviews_bing_all
+
+
+# vizualization for each supplement
+supplement1<-clean_tokenised_reviews_bing_all %>%
+  filter(BRAND=="EQOLOGY")
+ggplot(supplement1,aes(x=reorder(word,n),y=n,fill=sentiment))+
+  geom_col(show.legend = FALSE)+
+  coord_flip()+
+  facet_grid(BRAND~sentiment,scales="free")+
+  labs(title="Top 10 pozytywnych i negatywnych slow dla suplementu EQOLOGY", x="Slowa",y="czestotliwosc")
+
+
+supplement2<-clean_tokenised_reviews_bing_all %>%
+  filter(BRAND=="Horbaach")
+ggplot(supplement2,aes(x=reorder(word,n),y=n,fill=sentiment))+
+  geom_col(show.legend = FALSE)+
+  coord_flip()+
+  facet_grid(BRAND~sentiment,scales="free")+
+  labs(title="Top 10 pozytywnych i negatywnych slow dla suplementu Horbaach", x="Slowa",y="czestotliwosc")
+
+
+supplement3<-clean_tokenised_reviews_bing_all %>%
+  filter(BRAND=="Igennus")
+ggplot(supplement3,aes(x=reorder(word,n),y=n,fill=sentiment))+
+  geom_col(show.legend = FALSE)+
+  coord_flip()+
+  facet_grid(BRAND~sentiment,scales="free")+
+  labs(title="Top 10 pozytywnych i negatywnych slow dla suplementu Igennus", x="Slowa",y="czestotliwosc")
+
+
+supplement4<-clean_tokenised_reviews_bing_all %>%
+  filter(BRAND=="Lindes")
+ggplot(supplement4,aes(x=reorder(word,n),y=n,fill=sentiment))+
+  geom_col(show.legend = FALSE)+
+  coord_flip()+
+  facet_grid(BRAND~sentiment,scales="free")+
+  labs(title="Top 10 pozytywnych i negatywnych slow dla suplementu Lindes", x="Slowa",y="czestotliwosc")
+
+
+supplement5<-clean_tokenised_reviews_bing_all %>%
+  filter(BRAND=="Mollers")
+ggplot(supplement5,aes(x=reorder(word,n),y=n,fill=sentiment))+
+  geom_col(show.legend = FALSE)+
+  coord_flip()+
+  facet_grid(BRAND~sentiment,scales="free")+
+  labs(title="Top 10 pozytywnych i negatywnych slow dla suplementu Mollers", x="Slowa",y="czestotliwosc")
+
+
+supplement6<-clean_tokenised_reviews_bing_all %>%
+  filter(BRAND=="Nordic Naturals")
+ggplot(supplement6,aes(x=reorder(word,n),y=n,fill=sentiment))+
+  geom_col(show.legend = FALSE)+
+  coord_flip()+
+  facet_grid(BRAND~sentiment,scales="free")+
+  labs(title="Top 10 pozytywnych i negatywnych slow dla suplementu Nordic Naturals", x="Slowa",y="czestotliwosc")
+
+
+supplement7<-clean_tokenised_reviews_bing_all %>%
+  filter(BRAND=="Nutravita")
+ggplot(supplement7,aes(x=reorder(word,n),y=n,fill=sentiment))+
+  geom_col(show.legend = FALSE)+
+  coord_flip()+
+  facet_grid(BRAND~sentiment,scales="free")+
+  labs(title="Top 10 pozytywnych i negatywnych slow dla suplementu Nutravita", x="Slowa",y="czestotliwosc")
+
+
+supplement8<-clean_tokenised_reviews_bing_all %>%
+  filter(BRAND=="VITABIOTICS")
+ggplot(supplement8,aes(x=reorder(word,n),y=n,fill=sentiment))+
+  geom_col(show.legend = FALSE)+
+  coord_flip()+
+  facet_grid(BRAND~sentiment,scales="free")+
+  labs(title="Top 10 pozytywnych i negatywnych slow dla suplementu VITABIOTICS", x="Slowa",y="czestotliwosc")
+
+
+supplement9<-clean_tokenised_reviews_bing_all %>%
+  filter(BRAND=="WeightWorld")
+ggplot(supplement9,aes(x=reorder(word,n),y=n,fill=sentiment))+
+  geom_col(show.legend = FALSE)+
+  coord_flip()+
+  facet_grid(BRAND~sentiment,scales="free")+
+  labs(title="Top 10 pozytywnych i negatywnych slow dla suplementu WeightWorld", x="Slowa",y="czestotliwosc")
+
+
+supplement10<-clean_tokenised_reviews_bing_all %>%
+  filter(BRAND=="Zipvit")
+ggplot(supplement10,aes(x=reorder(word,n),y=n,fill=sentiment))+
+  geom_col(show.legend = FALSE)+
+  coord_flip()+
+  facet_grid(BRAND~sentiment,scales="free")+
+  labs(title="Top 10 pozytywnych i negatywnych slow dla suplementu Zipvit", x="Slowa",y="czestotliwosc")
+
+
+
+
+
+```
+
+
+#RQ 4
+```{r correlation: rating vs. sentiment}
+print(afinn_sent_review)
+spearman_rating_vs_sent<-cor.test(afinn_sent_review$normalised_sentiment_score, afinn_sent_review$RATING, method="spearman")
+spearman_rating_vs_sent
+
+barplot(table(afinn_sent_review$RATING),
+        main="Distribution of Ratings",
+        xlab="Rating",
+        ylab="count",
+        col="skyblue")
+
+mean(afinn_sent_review$RATING, na.rm=TRUE)
+median(afinn_sent_review$RATING, na.rm=TRUE)
+sum(afinn_sent_review$RATING==5)
+procent_5<-sum(afinn_sent_review$RATING==5)/nrow(afinn_sent_review)*100
+procent_5
+
+
+
+#visualization
+ggplot(afinn_sent_review,aes(x=RATING,
+                          y=normalised_sentiment_score))+
+  geom_jitter(width = 0.2, alpha=0.5,color="darkblue")+
+  geom_smooth(method = " ")+
+  labs(title="Rating vs Sentiment for Each Review",
+       x="Rating",
+       y=" Sentiment")+
+  theme_minimal()
+
+
+
+
+
+
+#BRAND
+brand_sentiment_normal<-brand_sentiment_normal%>%
+  right_join(average_rating, by="BRAND")
+brand_sentiment_normal 
+
+ggplot(do_korelacji_pyt1,aes(x=average_rating,
+                          y=average_brand_normalised_sentiment))+
+  geom_point(alpha=0.3)+
+  geom_smooth(method = "",se=FALSE,color="blue")+
+  labs(title="Sentiment Scores vs Ratings Across Supplements ",
+       x="Rating",
+       y="Sentiment Score")+
+  theme_minimal()
+spearman_rating_sent_per_brand<-cor.test(brand_sentiment_normal$average_brand_normalised_sentiment, brand_sentiment_normal$mean_rating, method="spearman")
+spearman_rating_sent_per_brand
+
+
+
+
+
+
+
+
+```
+
+
+
+
+
+#RQ3
+# Topics discussed in reviews
+```{r topic modelling}
+print(clean_tokenised_reviews)
+
+ 
+clean_tokenised_reviews_combined<-clean_tokenised_reviews %>%
+  group_by(ID, BRAND,RATING) %>%
+  summarise(REVIEW=paste(word,collapse= " "))
+head(clean_tokenised_reviews_combined)
+
+
+df1<-clean_tokenised_reviews_combined %>%
+  select(BRAND,RATING,REVIEW) %>%
+  filter(str_count(REVIEW)>=100 & str_count(REVIEW)<=500)
+print(summary(df1))
+
+
+df1$Review_no<-1:nrow(df1)
+if(nrow(df1)>1000){
+  set.seed(3)
+  df1<-sample_n(df1,1000)
+}
+print(summary(df1))
+
+
+
+
+#creating tdm
+#converting text into a corpus
+corpus<-Corpus(VectorSource(df1$REVIEW))
+tdm<-TermDocumentMatrix(corpus)
+tdm_matrix<-as.matrix(tdm)
+
+
+
+#most frequent and rare occurring word
+frequent_terms<-findFreqTerms(tdm,lowfreq = 0.1*ncol(tdm_matrix))
+rare_terms<-findFreqTerms(tdm,highfreq = 0.01*ncol(tdm_matrix))
+print(frequent_terms)
+print(rare_terms)
+
+
+to_keep<-c(" ")
+to_remove<-frequent_terms[!frequent_terms %in% to_keep]
+
+
+filtered_tdm_matrix<-tdm_matrix[!rownames(tdm_matrix) %in% to_remove, ]
+filtered_tdm_matrix<-filtered_tdm_matrix[!rownames(filtered_tdm_matrix) %in% rare_terms, ]
+
+column_sums<-colSums(filtered_tdm_matrix)
+
+zero_columns<-which(column_sums==0)
+if(length(zero_columns)>0){
+  filtered_tdm_matrix<-filtered_tdm_matrix[, -zero_columns]
+}else{
+  print("No zero columns in TDM matrix")
+}
+
+term_frequencies<-rowSums(filtered_tdm_matrix)
+
+term_frequency_df1<-data.frame(term=names(term_frequencies),frequency=term_frequencies)
+
+top_terms<-term_frequency_df1 %>%
+  arrange(desc(frequency)) %>%
+  head(10)
+
+print(top_terms)
+
+
+#create histogram
+ggplot(term_frequency_df1,aes(x=frequency))+
+  geom_histogram(binwidth = 1)+
+  labs(title="Histogram of Term Frequencies", x="Term Frequency", y="Number of Terms")+
+  theme_minimal()
+
+
+
+num_freq<-length(frequent_terms)
+num_freq
+num_rare<-length(rare_terms)
+num_rare
+total_terms<-nrow(tdm_matrix)
+total_terms
+
+#percentage
+percent_freq<-(num_freq/total_terms)*100
+percent_freq
+percent_rare<-(num_rare/total_terms)*100
+percent_rare
+
+
+```
+
+
+#LDA model
+```{r LDA model}
+set.seed(5)
+dtm<-t(filtered_tdm_matrix)
+
+lda_model<-LDA(dtm,k=2,control=list(seed=5))
+lda_model
+
+topics<-tidy(lda_model,matrix="beta")
+topics
+
+top_terms<-topics %>%
+  group_by(topic)%>%
+  top_n(10,beta)%>%
+  ungroup() %>%
+  arrange(topic, -beta)
+
+top_terms %>%
+  ggplot(aes(x=reorder(term,beta),y=beta,fill=factor(topic)))+
+  geom_col(show.legend = FALSE)+
+  facet_wrap(~topic,scales="free")+
+  coord_flip()
+           
+
+
+range_k<-seq(2,10,by=1)
+perplexities<-sapply(range_k,function(k){
+  set.seed(5)
+  model<-LDA(dtm,k=k,control = list(seed=5))
+  perplexity(model)
+})
+
+#perplexities
+plot(range_k,perplexities,type="b",xlab="number of topics", ylab="perplexity")
+
+
+
+
+#final model
+dtm<-t(filtered_tdm_matrix)
+lda_model<-LDA(dtm,k=3,control=list(seed=5))
+#lda_model
+
+topics<-tidy(lda_model,matrix="beta")
+topics
+
+top_terms<-topics %>%
+  group_by(topic)%>%
+  top_n(10,beta)%>%
+  ungroup() %>%
+  arrange(topic, -beta)
+
+top_terms %>%
+  ggplot(aes(x=reorder(term,beta),y=beta,fill=factor(topic)))+
+  geom_col(show.legend = FALSE)+
+  facet_wrap(~topic,scales="free")+
+  coord_flip()
+
+```
+
+```{r LDA model}
+set.seed(5)
+lda_model <- LDA(dtm, k = 3)
+lda_vis_data <- createJSON(phi = posterior(lda_model)$terms,
+                          theta = posterior(lda_model)$topics,
+                          doc.length = rowSums(as.matrix(dtm)),
+                          vocab = colnames(as.matrix(dtm)),  
+                          term.frequency = colSums(as.matrix(dtm)))
+serVis(lda_vis_data)
+
+```
+
+
+
+
+
