@@ -50,7 +50,7 @@ These steps ensured cleaner input for sentiment analysis and topic modeling.
 EDA was performed to understand the structure and characteristics of the dataset.
 Key analyses included:
  - Distribution of star ratings ['Distribution'](https://github.com/APankowska/sentiment-analysis-omega3-reviews/blob/main/Rating%20distribution.pdf)
- - Review length analysis  ['Review length']
+ - Review length analysis  ['Review length'](https://github.com/APankowska/sentiment-analysis-omega3-reviews/blob/main/length%20of%20the%20rewiews.pdf)
  - Frequency of most common words ['Word cloud']
  - Initial inspection of sentiment tendencies across ratings ['Sentiment vs. Rating']
    
